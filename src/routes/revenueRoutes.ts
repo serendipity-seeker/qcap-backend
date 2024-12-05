@@ -1,7 +1,23 @@
 import { Router } from 'express';
-import { getRevenues, getRevenueByEpochAndAsset, createRevenue, updateRevenue, deleteRevenue } from '../controllers/revenueController';
+import { 
+  getRevenues, 
+  getRevenueByEpochAndAsset, 
+  createRevenue, 
+  updateRevenue, 
+  deleteRevenue,
+  getRevenuesByEpoch,
+  getRevenuesByAsset
+} from '../controllers/revenueController';
 
 const router = Router();
+
+router.get('/epoch/:epoch', (req, res, next) => {
+  getRevenuesByEpoch(req, res, next).catch(next);
+});
+
+router.get('/asset/:asset', (req, res, next) => {
+  getRevenuesByAsset(req, res, next).catch(next);
+});
 
 router.get('/', (req, res, next) => {
   getRevenues(req, res, next).catch(next);
