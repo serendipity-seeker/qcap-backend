@@ -14,9 +14,13 @@
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "cron": "^3.2.1",
     "express": "4.21.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "5.0.0",
     "@types/node": "22.10.1",
     "prisma": "5.22.0",
