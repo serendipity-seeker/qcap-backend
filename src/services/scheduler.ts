@@ -71,73 +71,92 @@ async function fetchBalance(address: string) {
   });
 }
 
-export const startWeeklyDataFetch = () => {
-  const job = new CronJob(
-    '30 12 * * 3',
-    async () => {
+async function fetchAndStoreData() {
+  try {
+    console.log('Starting data fetch at:', new Date().toISOString());
+
+    const tickInfo = await fetchTickInfo();
+    const currentEpoch = parseInt(tickInfo.epoch);
+    const targetEpoch = currentEpoch - 1;
+
+    console.log(`Current epoch: ${currentEpoch}, Storing data for epoch: ${targetEpoch}`);
+
+    const existingData = await prisma.revenue.findFirst({
+      where: {
+        epoch: targetEpoch,
+      },
+    });
+
+    if (existingData) {
+      console.log(`Data for epoch ${targetEpoch} already exists. Skipping...`);
+      return;
+    }
+
+    for (const [key, address] of Object.entries(QX_MONITOR_ADDRESS)) {
       try {
-        console.log('Starting scheduled data fetch at:', new Date().toISOString());
+        console.log(`Processing ${key} at address ${address}`);
 
-        const tickInfo = await fetchTickInfo();
-        const { epoch } = tickInfo;
-        console.log(`Fetching data for epoch: ${epoch}`);
+        const balance = await fetchBalance(address);
+        const currentBalance = parseInt(balance.balance) || 0;
 
-        for (const [key, address] of Object.entries(QX_MONITOR_ADDRESS)) {
-          try {
-            console.log(`Processing ${key} at address ${address}`);
+        const revenue = await calculateRevenue(currentBalance, targetEpoch, key);
 
-            const balance = await fetchBalance(address);
-            const currentBalance = parseInt(balance.balance) || 0;
+        await prisma.revenue.upsert({
+          where: {
+            epoch_asset: {
+              epoch: targetEpoch,
+              asset: key,
+            },
+          },
+          update: {
+            balance: currentBalance,
+            revenue: revenue,
+            timestamp: new Date(),
+          },
+          create: {
+            epoch: targetEpoch,
+            asset: key,
+            balance: currentBalance,
+            revenue: revenue,
+          },
+        });
 
-            const revenue = await calculateRevenue(currentBalance, epoch, key);
-
-            await prisma.revenue.upsert({
-              where: {
-                epoch_asset: {
-                  epoch: parseInt(epoch),
-                  asset: key,
-                },
-              },
-              update: {
-                balance: currentBalance,
-                revenue: revenue,
-                timestamp: new Date(),
-              },
-              create: {
-                epoch: parseInt(epoch),
-                asset: key,
-                balance: currentBalance,
-                revenue: revenue,
-              },
-            });
-
-            console.log(`Updated ${key} - Balance: ${currentBalance}, Revenue: ${revenue}`);
-          } catch (error) {
-            console.error(`Error processing ${key}:`, error);
-            // Continue with next asset even if one fails
-            continue;
-          }
-        }
-
-        console.log('Data fetch completed successfully');
+        console.log(`Updated ${key} - Epoch: ${targetEpoch}, Balance: ${currentBalance}, Revenue: ${revenue}`);
       } catch (error) {
-        if (error instanceof AxiosError) {
-          console.error('Network error:', {
-            message: error.message,
-            code: error.code,
-            status: error.response?.status,
-            data: error.response?.data,
-          });
-        } else {
-          console.error('Error in data fetch:', error);
-        }
+        console.error(`Error processing ${key}:`, error);
+        continue;
       }
-    },
-    null,
-    true,
-    'UTC'
-  );
+    }
+
+    console.log(`Data fetch completed successfully for epoch ${targetEpoch}`);
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      console.error('Network error:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error('Error in data fetch:', error);
+    }
+  }
+}
+
+export const startWeeklyDataFetch = async () => {
+  console.log('Initializing revenue data scheduler...');
+
+  // Run once when server starts
+  try {
+    await fetchAndStoreData();
+    console.log('Initial data fetch completed');
+  } catch (error) {
+    console.error('Initial data fetch failed:', error);
+  }
+
+  // Schedule weekly runs (Every Wednesday at 12:30 PM UTC)
+  const job = new CronJob('30 12 * * 3', fetchAndStoreData, null, true, 'UTC');
 
   job.start();
-  console.log('Revenue data scheduler initialized');
+  console.log('Weekly scheduler initialized (Every Wednesday at 12:30 PM UTC)');
 };
