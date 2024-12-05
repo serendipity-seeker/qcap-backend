@@ -1,18 +1,23 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 
-export const getRevenues = async (req: Request, res: Response) => {
+type RevenueParams = {
+  epoch: string;
+  asset: string;
+};
+
+export const getRevenues = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const revenues = await prisma.revenue.findMany({
       orderBy: { timestamp: 'desc' },
     });
     res.json(revenues);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch revenues' });
+    next(error);
   }
 };
 
-export const getRevenueByEpochAndAsset = async (req: Request, res: Response) => {
+export const getRevenueByEpochAndAsset = async (req: Request<RevenueParams>, res: Response, next: NextFunction) => {
   const { epoch, asset } = req.params;
   try {
     const revenue = await prisma.revenue.findUnique({
@@ -28,11 +33,11 @@ export const getRevenueByEpochAndAsset = async (req: Request, res: Response) => 
     }
     res.json(revenue);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch revenue' });
+    next(error);
   }
 };
 
-export const createRevenue = async (req: Request, res: Response) => {
+export const createRevenue = async (req: Request, res: Response, next: NextFunction) => {
   const { epoch, asset, revenue } = req.body;
   try {
     const newRevenue = await prisma.revenue.create({
@@ -44,11 +49,11 @@ export const createRevenue = async (req: Request, res: Response) => {
     });
     res.status(201).json(newRevenue);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create revenue' });
+    next(error);
   }
 };
 
-export const updateRevenue = async (req: Request, res: Response) => {
+export const updateRevenue = async (req: Request<RevenueParams>, res: Response, next: NextFunction) => {
   const { epoch, asset } = req.params;
   const { revenue } = req.body;
   try {
@@ -66,11 +71,11 @@ export const updateRevenue = async (req: Request, res: Response) => {
     });
     res.json(updatedRevenue);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update revenue' });
+    next(error);
   }
 };
 
-export const deleteRevenue = async (req: Request, res: Response) => {
+export const deleteRevenue = async (req: Request<RevenueParams>, res: Response, next: NextFunction) => {
   const { epoch, asset } = req.params;
   try {
     await prisma.revenue.delete({
@@ -83,6 +88,6 @@ export const deleteRevenue = async (req: Request, res: Response) => {
     });
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete revenue' });
+    next(error);
   }
-}; 
+};
