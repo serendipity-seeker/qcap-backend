@@ -11,7 +11,7 @@ model Revenue {
   id        String   @id @default(cuid())
   epoch     Int
   asset     String
-  revenue   Float
+  revenue   Int
   timestamp DateTime @default(now())
 
   @@unique([epoch, asset])

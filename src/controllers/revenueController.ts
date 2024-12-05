@@ -44,7 +44,7 @@ export const createRevenue = async (req: Request, res: Response, next: NextFunct
       data: {
         epoch: parseInt(epoch),
         asset,
-        revenue: parseFloat(revenue),
+        revenue: parseInt(revenue) || 0,
       },
     });
     res.status(201).json(newRevenue);
@@ -65,7 +65,7 @@ export const updateRevenue = async (req: Request<RevenueParams>, res: Response, 
         },
       },
       data: {
-        revenue: parseFloat(revenue),
+        revenue: parseInt(revenue) || 0,
         timestamp: new Date(),
       },
     });

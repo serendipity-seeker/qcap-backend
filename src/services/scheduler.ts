@@ -25,7 +25,7 @@ export const startWeeklyDataFetch = () => {
         console.log(`Processing ${key} at address ${address}`);
         
         const balanceResponse = await axios.get(`${RPC_URL}/balances/${address}`);
-        const revenue = parseFloat(balanceResponse.data.balance.incomingAmount) || 0;
+        const revenue = parseInt(balanceResponse.data.balance.incomingAmount) || 0;
 
         await prisma.revenue.upsert({
           where: {
@@ -58,5 +58,5 @@ export const startWeeklyDataFetch = () => {
   }, null, true, 'UTC');
 
   job.start();
-  console.log('Revenue data scheduler initialized (10-second intervals)');
+  console.log('Revenue data scheduler initialized');
 }; 
