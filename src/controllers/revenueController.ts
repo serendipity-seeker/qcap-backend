@@ -6,7 +6,16 @@ type RevenueParams = {
   asset: string;
 };
 
-export const getRevenues = async (req: Request, res: Response, next: NextFunction) => {
+interface RevenueResponse {
+  id: string;
+  epoch: number;
+  asset: string;
+  balance: number;
+  revenue: number;
+  timestamp: Date;
+}
+
+export const getRevenues = async (req: Request, res: Response<RevenueResponse[]>, next: NextFunction) => {
   try {
     const revenues = await prisma.revenue.findMany({
       orderBy: { timestamp: 'desc' },
@@ -56,8 +65,10 @@ export const createRevenue = async (req: Request, res: Response, next: NextFunct
     const newRevenue = await prisma.revenue.create({
       data: {
         epoch: parseInt(epoch),
-        asset,
+        asset: asset.toUpperCase(),
         revenue: parseInt(revenue) || 0,
+        balance: 0,
+        timestamp: new Date(),
       },
     });
     res.status(201).json(newRevenue);

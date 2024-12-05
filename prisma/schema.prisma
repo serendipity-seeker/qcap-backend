@@ -11,6 +11,7 @@ model Revenue {
   id        String   @id @default(cuid())
   epoch     Int
   asset     String
+  balance   Int
   revenue   Int
   timestamp DateTime @default(now())
 
