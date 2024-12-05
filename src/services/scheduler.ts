@@ -15,18 +15,22 @@ export const startWeeklyDataFetch = () => {
   // Schedule for every Wednesday at 12:30 PM UTC
   const job = new CronJob('30 12 * * 3', async () => {
     try {
+      console.log('Starting scheduled data fetch at:', new Date().toISOString());
+      
       const response = await axios.get(`${RPC_URL}/tick-info`);
       const { epoch } = response.data.tickInfo;
-      console.log(`Starting data fetch for epoch: ${epoch}`);
+      console.log(`Fetching data for epoch: ${epoch}`);
 
       for (const [key, address] of Object.entries(QX_MONITOR_ADDRESS)) {
+        console.log(`Processing ${key} at address ${address}`);
+        
         const balanceResponse = await axios.get(`${RPC_URL}/balances/${address}`);
-        const revenue = balanceResponse.data.balance.incomingAmount;
+        const revenue = parseFloat(balanceResponse.data.balance.incomingAmount) || 0;
 
         await prisma.revenue.upsert({
           where: {
             epoch_asset: {
-              epoch,
+              epoch: parseInt(epoch),
               asset: key,
             },
           },
@@ -35,21 +39,24 @@ export const startWeeklyDataFetch = () => {
             timestamp: new Date(),
           },
           create: {
-            epoch,
+            epoch: parseInt(epoch),
             asset: key,
             revenue,
           },
         });
 
-        console.log(`Updated revenue data for ${key} at epoch ${epoch}`);
+        console.log(`Updated revenue data for ${key}: ${revenue}`);
       }
 
-      console.log('Weekly data fetch completed successfully');
-    } catch (error) {
-      console.error('Error in weekly data fetch:', error);
+      console.log('Data fetch completed successfully');
+    } catch (error: any) {
+      console.error('Error in data fetch:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+      }
     }
   }, null, true, 'UTC');
 
   job.start();
-  console.log('Revenue data scheduler initialized');
+  console.log('Revenue data scheduler initialized (10-second intervals)');
 }; 

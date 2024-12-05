@@ -42,9 +42,9 @@ export const createRevenue = async (req: Request, res: Response, next: NextFunct
   try {
     const newRevenue = await prisma.revenue.create({
       data: {
-        epoch,
+        epoch: parseInt(epoch),
         asset,
-        revenue,
+        revenue: parseFloat(revenue),
       },
     });
     res.status(201).json(newRevenue);
@@ -65,7 +65,7 @@ export const updateRevenue = async (req: Request<RevenueParams>, res: Response, 
         },
       },
       data: {
-        revenue,
+        revenue: parseFloat(revenue),
         timestamp: new Date(),
       },
     });
